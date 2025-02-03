@@ -1,13 +1,11 @@
-#include <atomic>
-#include <cstdint>
-#include <string>
 #include <thread>
 #include <csignal>
 #include <iostream>
 #include <zmq.hpp>
+#include "../monitor/monitor.h"
 
 namespace {
-    //static variable used to sopt the main loop
+    // static variable used to sopt the main loop
     volatile std::atomic_bool isRunning{true};
 }
 
@@ -17,9 +15,9 @@ void signal_handler(int signal) {
 }
 
 // Build and publish msg
-void publish_msg(zmq::socket_ref pub, const uint32_t cpt) {
-    std::string strData{"Hello:" + std::to_string(cpt)};
-    zmq::message_t msg(strData.begin(), strData.end());
+void publish_msg(zmq::socket_ref pub, const nlohmann::json& json) {
+    std::string strData = to_string(json);
+    zmq::message_t msg(std::begin(strData), std::end(strData));
 
     // send simple message
     auto res = pub.send(msg, zmq::send_flags::none);
@@ -42,11 +40,25 @@ int main() {
     // main loop with periodic publish
     std::cout << "Start main loop" << std::endl;
     auto nextLoopTime = std::chrono::steady_clock::now();
-    uint32_t cpt{0};
+
+    // create monitor
+    Monitor monitor;
+    // ram period bigger than cpu
+    uint8_t ramCpt{0};
 
     while (isRunning) {
-        publish_msg(publisher, cpt);
-        cpt += 1;
+        // get cpu stat in json and publish it(2s period)
+        nlohmann::json cpuJson = monitor.getCPU();
+        publish_msg(publisher, cpuJson);
+
+        // get ram stat in json and publish it (10s period)
+        if (ramCpt >= 5) {
+            nlohmann::json ramJson = monitor.getRAM();
+            publish_msg(publisher, ramJson);
+            ramCpt = 1;
+        } else {
+            ramCpt += 1;
+        }
 
         // compute next loop timing and wait
         nextLoopTime = nextLoopTime + std::chrono::milliseconds(2000);

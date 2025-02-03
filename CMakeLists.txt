@@ -34,7 +34,11 @@ set(CPPZMQ_BUILD_EXAMPLES OFF CACHE BOOL "Disable cppzmq examples" FORCE)
 set(CPPZMQ_INSTALL OFF CACHE BOOL "Disable cppzmq installation" FORCE)
 FetchContent_MakeAvailable(cppzmq)
 
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 # Add source subdirectories
+add_subdirectory(src/monitor)
 add_subdirectory(src/server)
 add_subdirectory(src/client)
 
