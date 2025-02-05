@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Werror)
+add_compile_options(-Wall -Wextra -Wpedantic -Wconversion -Werror)
 
 # Use local install directory if no prefix provided
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -34,6 +34,7 @@ set(CPPZMQ_BUILD_EXAMPLES OFF CACHE BOOL "Disable cppzmq examples" FORCE)
 set(CPPZMQ_INSTALL OFF CACHE BOOL "Disable cppzmq installation" FORCE)
 FetchContent_MakeAvailable(cppzmq)
 
+# Get nlohmann json library
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 

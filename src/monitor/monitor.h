@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <nlohmann/json.hpp>
 
@@ -19,12 +20,14 @@ class Monitor {
     // Used to convert cpu ticks to percent consuption
     int64_t scClkTck;  // clock ticks per second
     std::chrono::time_point<std::chrono::steady_clock> lastCpuTime;
-    std::vector<std::vector<uint64_t>> lastCpuValues;
-    // Internal function used to read /proc/stat file
-    // Double vector used because cpu core number and label number not fix
-    std::vector<std::vector<uint64_t>> dumpStat();
 
-    // Labes used
+    // Internal function used to read /proc/stat file
+    std::vector<std::vector<uint64_t>> dumpStat();
+    // Double vector used because cpu core count and number of labels not const
+    std::vector<std::vector<uint64_t>> lastCpuValues;
+
+    // Label used
+    // RAM label not const because we can add/remove elements for configration
     std::vector<std::string> listRamLabel{
         "MemTotal",
         "MemFree",
@@ -36,7 +39,8 @@ class Monitor {
         "Inactive",
         "SwapTotal",
         "SwapFree"};
-    static constexpr std::array<std::string, 11> listCpuLabel{{
+    // CPU labes const because list is exhaustive
+    static constexpr std::array<std::string_view, 11> listCpuLabel = {{
         "user",
         "nice",
         "system",
@@ -49,7 +53,7 @@ class Monitor {
         "guest_nice",
         "UNKNOWN"}};
 
-    // get duration between two measures
+    // get duration between two measurements
     inline int64_t getElapsedMicro();
 };
 

@@ -1,6 +1,8 @@
 #include <thread>
 #include <csignal>
 #include <iostream>
+#include <atomic>
+#include <string>
 #include <zmq.hpp>
 #include "../monitor/monitor.h"
 
@@ -44,17 +46,15 @@ int main() {
     // create monitor
     Monitor monitor;
     // ram period bigger than cpu
-    uint8_t ramCpt{0};
+    int ramCpt{0};
 
     while (isRunning) {
         // get cpu stat in json and publish it(2s period)
-        nlohmann::json cpuJson = monitor.getCPU();
-        publish_msg(publisher, cpuJson);
+        publish_msg(publisher, monitor.getCPU());
 
         // get ram stat in json and publish it (10s period)
         if (ramCpt >= 5) {
-            nlohmann::json ramJson = monitor.getRAM();
-            publish_msg(publisher, ramJson);
+            publish_msg(publisher, monitor.getRAM());
             ramCpt = 1;
         } else {
             ramCpt += 1;

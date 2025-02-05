@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <fstream>
 #include <iostream>
 #include <utility>
@@ -105,7 +106,7 @@ nlohmann::json Monitor::getCPU() {
 
     json["timeMicro"] = getElapsedMicro();
 
-    // cpu slot duration used to compute cpu load in percent from tick number
+    // duration between two CPU measurements used to compute cpu load in percent from tick count
     int64_t slotDurationMicro = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - lastCpuTime).count();
     json["slotDurationMicro"] = slotDurationMicro;
 
@@ -114,7 +115,8 @@ nlohmann::json Monitor::getCPU() {
     // get the new cpu tick values
     auto newCpuValues = dumpStat();
 
-    // compute difference between tick and then cpu load
+    // compute difference between last and new tick values
+    // then convert them in percent cpu load
     if (newCpuValues.size() == lastCpuValues.size()) {
         for (uint64_t i = 0; i < newCpuValues.size(); ++i) {
             // first line is global cpu, nex line are for each core

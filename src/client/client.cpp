@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <thread>
+#include <atomic>
 #include <zmq.hpp>
 #include <nlohmann/json.hpp>
 
@@ -15,6 +16,12 @@ void signal_handler(int signal) {
     isRunning = false;
 }
 
+// get time since monitor start in second
+inline uint64_t simpleTimeSec(float timeMicro) {
+    return static_cast<uint64_t>(std::trunc(timeMicro/1000000));
+}
+
+// reset/create new csv for RAM with header
 void initRamCsv() {
     std::ofstream ramCsv{"RAM.csv", std::ios_base::trunc};
     if (ramCsv.is_open()) {
@@ -33,12 +40,13 @@ void initRamCsv() {
     }
 }
 
+// add one raw in RAM csv file
 void updateRamCsv(const nlohmann::json& json) {
     try {
         const nlohmann::json& jsonR = json["RAM"];
         std::ofstream ramCsv{"RAM.csv", std::ios_base::app};
         if (ramCsv.is_open()) {
-            ramCsv << jsonR["timeMicro"] << ";";
+            ramCsv << simpleTimeSec(jsonR["timeMicro"]) << ";";
             ramCsv << jsonR["MemTotal"]["val"] << ";";
             ramCsv << jsonR["MemFree"]["val"] << ";";
             ramCsv << jsonR["MemAvailable"]["val"] << ";";
@@ -57,6 +65,7 @@ void updateRamCsv(const nlohmann::json& json) {
     }
 }
 
+// reset/create new csv for CPU with header
 void initCpuCsv() {
     std::ofstream cpuCsv{"CPU.csv", std::ios_base::trunc};
     if (cpuCsv.is_open()) {
@@ -75,12 +84,13 @@ void initCpuCsv() {
     }
 }
 
+// add one raw in CPU csv file
 void updateCpuCsv(const nlohmann::json& json) {
     try {
         const nlohmann::json& jsonC = json["CPU"]["Global"];
         std::ofstream cpuCsv{"CPU.csv", std::ios_base::app};
         if (cpuCsv.is_open()) {
-            cpuCsv << json["CPU"]["timeMicro"] << ";";
+            cpuCsv << simpleTimeSec(json["CPU"]["timeMicro"]) << ";";
             cpuCsv << std::fixed << std::setprecision(1);
             cpuCsv << float(jsonC["user"]) << ";";
             cpuCsv << float(jsonC["nice"]) << ";";
@@ -100,18 +110,12 @@ void updateCpuCsv(const nlohmann::json& json) {
     }
 }
 
-inline uint64_t simpleTimeSec(float timeMicro) {
-    return static_cast<uint64_t>(std::trunc(timeMicro/1000000));
-}
-
-inline float percentRam(float mem, float total) {
-    return mem*100/total;
-}
-
+// display in stdout global CPU information
 void logCpu(const nlohmann::json& json) {
     try {
         const nlohmann::json& jsonC = json["CPU"]["Global"];
         uint64_t nbCpu = json["CPU"].size() - 3;
+        // simplify less important values in one
         float otherCpu{};
         if (jsonC.contains("nice"))
             otherCpu += static_cast<float>(jsonC["nice"]);
@@ -141,6 +145,12 @@ void logCpu(const nlohmann::json& json) {
     }
 }
 
+// convert value as percent of total
+inline float toPercent(float val, float total) {
+    return val*100/total;
+}
+
+// display in stdout global RAM information
 void logRam(const nlohmann::json& json) {
     try {
         const nlohmann::json& jsonR = json["RAM"];
@@ -149,10 +159,10 @@ void logRam(const nlohmann::json& json) {
         std::cout << simpleTimeSec(jsonR["timeMicro"]) << "s -> RAM:";
         std::cout << " Total:" << jsonR["MemTotal"]["val"] << jsonR["MemTotal"]["unit"].get<nlohmann::json::string_t>();
         std::cout.precision(3);
-        std::cout << " Available:"<< percentRam(jsonR["MemAvailable"]["val"], total) << "% (";
-        std::cout << "Free:"<< percentRam(jsonR["MemFree"]["val"], total) << "% / ";
-        std::cout << "Buffers:"<< percentRam(jsonR["Buffers"]["val"], total) << "% / ";
-        std::cout << "Cached:"<< percentRam(jsonR["Cached"]["val"], total) << "%)";
+        std::cout << " Available:"<< toPercent(jsonR["MemAvailable"]["val"], total) << "% (";
+        std::cout << "Free:"<< toPercent(jsonR["MemFree"]["val"], total) << "% / ";
+        std::cout << "Buffers:"<< toPercent(jsonR["Buffers"]["val"], total) << "% / ";
+        std::cout << "Cached:"<< toPercent(jsonR["Cached"]["val"], total) << "%)";
         std::cout << std::endl;
     }
     catch(const nlohmann::json::exception& e) {
